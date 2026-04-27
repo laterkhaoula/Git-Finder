@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">GitHub<span>  Finder</span></div>
+    <div class="header-actions">
+      <button class="bookmark-toggle" id="bookmark-toggle-btn">
+
+      <img src="heart.png" alt="" width="35px" height="35px"><span>Favoris</span>
+        <span id="bookmark-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+    <!-- SEARCH BAR -->
+    <div class="search-section">
+      <label class="search-label" for="search-input">// Rechercher un Développeur</label>
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="ex: torvalds" autocomplete="off" />
+        <button id="search-btn">Chercher →</button>
+      </div>
+    </div>
+
+    <!-- PANELS -->
+    <div id="panel-welcome" class="panel active">
+      <div class="welcome-icon"><img src="seo.png" alt="" width="100px" height="100px"></div>
+      <h1 class="welcome-title">Trouvez les meilleurs<br><span>développeurs GitHub</span></h1>
+      <p class="welcome-sub">Entrez un nom d'utilisateur GitHub pour voir<br>son profil, ses statistiques et ses repos publics.</p>
+    </div>
+
+    <div id="panel-loading" class="panel">
+      <div class="loader"></div>
+      <p class="loading-text">CHARGEMENT DU PROFIL...</p>
+    </div>
+
+    <div id="panel-error" class="panel">
+      <div class="error-box">
+        <div class="error-icon">⚠️</div>
+        <p class="error-message" id="error-message">Utilisateur non trouvé.</p>
+      </div>
+    </div>
+
+    <div id="panel-results" class="panel">
+      <div class="profile-card" id="profile-card">
+        <img class="profile-avatar" id="profile-avatar" src="" alt="avatar" />
+        <div class="profile-info">
+          <div class="profile-name" id="profile-name">—</div>
+          <div class="profile-login" id="profile-login">@—</div>
+          <div class="profile-bio" id="profile-bio"></div>
+          <div class="profile-stats">
+            <div class="stat-badge">👥 Followers : <span class="stat-value" id="profile-followers">0</span></div>
+            <div class="stat-badge">➡️ Following : <span class="stat-value" id="profile-following">0</span></div>
+            <div class="stat-badge">📦 Repos : <span class="stat-value" id="profile-repos">0</span></div>
+          </div>
+          <div class="profile-actions">
+            <a class="btn-gh" id="profile-link" href="#" target="_blank" rel="noopener">🔗 Voir sur GitHub</a>
+            <button class="btn-fav" id="btn-bookmark">⭐ Ajouter aux favoris</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-bookmarks" class="panel">
+      <h2>⭐ Mes Favoris</h2>
+      <div class="bookmarks-grid" id="bookmarks-grid"></div>
+    </div>
+  </main>
+  <script src="script.js"></script>
+</body>
+
+</html>
