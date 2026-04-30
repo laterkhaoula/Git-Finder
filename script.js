@@ -1,151 +1,210 @@
-const testUsers = [
-    {
-        id: 1,
-        login: "torvalds",
-        name: "Linus Torvalds",
-        avatar_url: "https://avatars.githubusercontent.com/u/1024588?v=4",
-        bio: "Linux creator",
-        followers: 200000,
-        following: 0,
-        public_repos: 50
-    },
-    {
-        id: 2,
-        login: "gvanrossum",
-        name: "Guido van Rossum",
-        avatar_url: "https://avatars.githubusercontent.com/u/6490553?v=4",
-        bio: "Python creator",
-        followers: 50000,
-        following: 50,
-        public_repos: 30
+
+
+ const state = {
+      currentUser: null,
+      bookmarks: JSON.parse(localStorage.getItem('devhunt_bookmarks')) || [],
+      isViewingBookmarks: false,
+    };
+
+    // ─────────────────────────────────────────────
+    //  UTILITAIRES DOM
+    // ─────────────────────────────────────────────
+    function showPanel(id) {
+      const panels = ['panel-welcome', 'panel-loading', 'panel-error', 'panel-results', 'panel-bookmarks'];
+      panels.forEach(p => {
+        document.getElementById(p).classList.remove('active');
+      });
+      document.getElementById(id).classList.add('active');
     }
-];
 
-// Repositories de test
-
-const testRepos = [
-    {
-        name: "linux",
-        description: "Linux kernel",
-        language: "C",
-        stargazers_count: 15000,
-        forks_count: 2000,
-        html_url: "https://github.com/torvalds/linux"
-    },
-    {
-        name: "cpython",
-        description: "Python interpreter",
-        language: "C",
-        stargazers_count: 50000,
-        forks_count: 23000,
-        html_url: "https://github.com/python/cpython"
+    function saveBookmarks() {
+      localStorage.setItem('devhunt_bookmarks', JSON.stringify(state.bookmarks));
     }
-];
 
-const state = {
-    currentUser: null,      // Utilisateur actuellement affiché
-    bookmarks: [],          // Favoris sauvegardés
-    isViewingBookmarks: false  // Affiche favoris ou résultats?
-};
+    function updateBookmarkCount() {
+      document.getElementById('bookmark-count').textContent = state.bookmarks.length;
+    }
 
-const searchInput = document.getElementById('search-input');
-const searchBtn = document.getElementById('search-btn');
+    // ─────────────────────────────────────────────
+    //  API GITHUB
+    // ─────────────────────────────────────────────
+    async function fetchUser(username) {
+      showPanel('panel-loading');
 
-const userProfile = document.getElementById('profile-card');
-const reposList = document.getElementById('bookmarks-grid'); 
+     try {
+  const response = await fetch(`https://api.github.com/users/${username}`, {
+    headers: {
+      Authorization: `token ${token}`
+    }
+  });
 
-const welcomeState = document.getElementById('panel-welcome');
-const loadingState = document.getElementById('panel-loading');
-const panelError = document.getElementById('panel-error');
+        if (response.status === 404) {
+          showPanel('panel-error');
+          document.getElementById('error-message').textContent = `Utilisateur "${username}" non trouvé.`;
+          return;
+        }
 
-const bookmarksList = document.getElementById('bookmarks-grid');
-const bookmarkCount = document.getElementById('bookmark-count');
+        if (!response.ok) {
+          showPanel('panel-error');
+          document.getElementById('error-message').textContent = 'Erreur réseau. Réessayez plus tard.';
+          return;
+        }
 
-const panelResult = document.getElementById('panel-results');
+        const user = await response.json();
+        state.currentUser = user;
+        displayUser(user);
 
+      } catch (error) {
+        showPanel('panel-error');
+        document.getElementById('error-message').textContent = 'Impossible de contacter GitHub. Vérifiez votre connexion.';
+      }
+    }
 
+    // ─────────────────────────────────────────────
+    //  AFFICHER UN PROFIL
+    // ─────────────────────────────────────────────
+    function displayUser(user) {
+      document.getElementById('profile-avatar').src = user.avatar_url;
+      document.getElementById('profile-avatar').alt = user.login;
+      document.getElementById('profile-name').textContent = user.name || user.login;
+      document.getElementById('profile-login').textContent = `@${user.login}`;
+      document.getElementById('profile-bio').textContent = user.bio || '';
+      document.getElementById('profile-followers').textContent = user.followers;
+      document.getElementById('profile-following').textContent = user.following;
+      document.getElementById('profile-repos').textContent = user.public_repos;
+      document.getElementById('profile-link').href = user.html_url;
 
+      // Mettre à jour le bouton favori
+      updateFavButton();
 
-    /*   <div class="profile-card" id="profile-card">
-        <img class="profile-avatar" id="profile-avatar" src="" alt="avatar" />
-        <div class="profile-info">
-          <div class="profile-name" id="profile-name">—</div>
-          <div class="profile-login" id="profile-login">@—</div>
-          <div class="profile-bio" id="profile-bio"></div>
-          <div class="profile-stats">
-            <div class="stat-badge"><img src="images/folow1.png" alt="" width="40px" height="40">Followers : <span class="stat-value" id="profile-followers">0</span></div>
-            <div class="stat-badge"><img src="images/follow.png" alt="" width="35px" height="35px"> Following : <span class="stat-value" id="profile-following">0</span></div>
-            <div class="stat-badge"><img src="images/package.png" alt="" width="30px" height="30px"> Repos : <span class="stat-value" id="profile-repos">0</span></div>
+      showPanel('panel-results');
+    }
+
+    function updateFavButton() {
+      if (!state.currentUser) return;
+      const btn = document.getElementById('btn-bookmark');
+      const isSaved = state.bookmarks.some(b => b.id === state.currentUser.id);
+
+      if (isSaved) {
+        btn.textContent = ' Dans les favoris';
+        btn.classList.add('saved');
+      } else {
+        btn.textContent = ' Ajouter aux favoris';
+        btn.classList.remove('saved');
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    //  FAVORIS
+    // ─────────────────────────────────────────────
+    function toggleBookmark() {
+      if (!state.currentUser) return;
+
+      const user = state.currentUser;
+      const index = state.bookmarks.findIndex(b => b.id === user.id);
+
+      if (index === -1) {
+        // Ajouter
+        state.bookmarks.push({
+          id: user.id,
+          login: user.login,
+          name: user.name || user.login,
+          avatar_url: user.avatar_url,
+        });
+      } else {
+        // Retirer
+        state.bookmarks.splice(index, 1);
+      }
+
+      saveBookmarks();
+      updateBookmarkCount();
+      updateFavButton();
+
+      if (state.isViewingBookmarks) {
+        renderBookmarks();
+      }
+    }
+
+    function removeBookmark(id, event) {
+      event.stopPropagation(); // Ne pas déclencher le chargement du profil
+      state.bookmarks = state.bookmarks.filter(b => b.id !== id);
+      saveBookmarks();
+      updateBookmarkCount();
+      updateFavButton();
+      renderBookmarks();
+    }
+
+    function renderBookmarks() {
+      const grid = document.getElementById('bookmarks-grid');
+
+      if (state.bookmarks.length === 0) {
+        grid.innerHTML = `<div class="empty-bookmarks">⭐<p>Aucun favori pour l'instant.<br>Cherchez un développeur et ajoutez-le !</p></div>`;
+        return;
+      }
+
+      grid.innerHTML = state.bookmarks.map(b => `
+        <div class="bookmark-card" onclick="loadBookmark('${b.login}')">
+          <img class="bookmark-avatar" src="${b.avatar_url}" alt="${b.login}" />
+          <div class="bookmark-info">
+            <div class="bookmark-name">${b.name}</div>
+            <div class="bookmark-login">@${b.login}</div>
           </div>
-          <div class="profile-actions">
-            <a class="btn-gh" id="profile-link" href="#" target="_blank" rel="noopener">🔗 Voir sur GitHub</a>
-            <button class="btn-fav" id="btn-bookmark">⭐ Ajouter au4x favoris</button>
-          </div>
+          <button class="btn-remove" onclick="removeBookmark(${b.id}, event)" title="Supprimer">✕</button>
         </div>
-      </div> */
-function displayUserProfile(user) {
+      `).join('');
+    }
 
-    const profileAvatar = document.getElementById('profile-avatar');
-    const profileName = document.getElementById('profile-name');
-    const profileLogin = document.getElementById('profile-login');
+    function loadBookmark(login) {
+      state.isViewingBookmarks = false;
+      document.getElementById('bookmark-toggle-btn').classList.remove('active');
+      document.getElementById('search-input').value = login;
+      fetchUser(login);
+    }
 
-    const profileBio = document.getElementById('profile-bio');
+    // ─────────────────────────────────────────────
+    //  TOGGLE VUE FAVORIS
+    // ─────────────────────────────────────────────
+    function toggleBookmarksView() {
+      state.isViewingBookmarks = !state.isViewingBookmarks;
+      const btn = document.getElementById('bookmark-toggle-btn');
 
+      if (state.isViewingBookmarks) {
+        btn.classList.add('active');
+        renderBookmarks();
+        showPanel('panel-bookmarks');
+      } else {
+        btn.classList.remove('active');
+        if (state.currentUser) {
+          showPanel('panel-results');
+        } else {
+          showPanel('panel-welcome');
+        }
+      }
+    }
 
-    const profileFollowers = document.getElementById('profile-followers');
-    const profileFollowing = document.getElementById('profile-following');
-    const profileRepos = document.getElementById('profile-repos');
+    // ─────────────────────────────────────────────
+    //  ÉVÉNEMENTS
+    // ─────────────────────────────────────────────
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const username = document.getElementById('search-input').value.trim();
+      if (!username) return;
 
+      state.isViewingBookmarks = false;
+      document.getElementById('bookmark-toggle-btn').classList.remove('active');
+      fetchUser(username);
+    });
 
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('search-btn').click();
+      }
+    });
 
+    document.getElementById('btn-bookmark').addEventListener('click', toggleBookmark);
 
-    // Mettre à jour les éléments du profil
-    profileAvatar.src = user.avatar_url;
-    profileName.textContent = user.name;
-    profileLogin.textContent = user.profileLogin;
-    profileBio.textContent = user.bio;
-    profileFollowers.textContent = user.followers;
-    profileFollowing.textContent = user.following;
-    profileRepos.textContent = user.profileRepos;
+    document.getElementById('bookmark-toggle-btn').addEventListener('click', toggleBookmarksView);
 
-    // Afficher la carte profil
-    panelResult.classList.remove('panel');
-    
-    // Masquer l'écran d'accueil
-
-
-  
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    // ─────────────────────────────────────────────
+    //  INITIALISATION
+    // ─────────────────────────────────────────────
+    updateBookmarkCount(); 
