@@ -25,9 +25,9 @@
       document.getElementById('bookmark-count').textContent = state.bookmarks.length;
     }
 
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────
     //  API GITHUB
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────
     async function fetchUser(username) {
       showPanel('panel-loading');
 
